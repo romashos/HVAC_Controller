@@ -3,7 +3,7 @@
 
 class ButtonCool {
 private:
-    InterruptIn fan_on{D3};
+    InterruptIn fan_on{D5};
 
 public:
     ButtonCool() {

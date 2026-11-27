@@ -1,72 +1,63 @@
-#include "temperature_controller.hpp"
 #include <iostream>
+#include "mbed.h"
+
 #include "../button_controller/button_controller.hpp"
+#include "../buzzer_controller/buzzer_controller.hpp"
+#include "../buzzer_controller/tunes.hpp"
+#include "temperature_controller.hpp"
 
-class Temperature {
-public:
-    Temperature() {}
+#ifndef UNIT_TEST
+float getTemp() {
+    temp_sensor.write(temp_addr, reinterpret_cast<const char*>(&commands[0]), 1, false);
+    thread_sleep_for(500);
 
-    inline static float current_temp = 0.0f;
+    temp_sensor.write(temp_addr, reinterpret_cast<const char*>(&commands[1]), 1, false);
+    temp_sensor.read(temp_addr, read_temp, 2);
 
-    static float getTemp() {
-        return current_temp; 
+    current_temp = (float((read_temp[0] << 8) | read_temp[1]) / 256);
+
+    printf("Temp = %d.%d\r\n", int(current_temp), int((current_temp - int(current_temp)) * 10));
+    return current_temp;
+}
+
+void IncreaseTemp() {
+
+    if (fan == ON) {
+        fan = OFF;
     }
 
-    static void setTemp() {
-        //Write 0x51 to 0x90 to start temperature conversion 
-        temp_sensor.write(temp_addr, &commands[0], 1, false); 
-        thread_sleep_for (500);    //wait for the conversion to complete 
+    if (heating == OFF) {
+        heating = ON;
+    }
+}
 
-        //Write 0xAA to 0x90 to read the last converted temperature 
-        temp_sensor.write(temp_addr, &commands[1], 1, false); 
-
-        //Read the temperature into the read_temp array 
-        temp_sensor.read(temp_addr, read_temp, 2); 
-
-        //Convert temperature to Celsius 
-        current_temp = (float((read_temp[0] << 8) | read_temp[1]) / 256); 
-
-        //Print temperature to the serial monitor 
-        printf("Temp = %d.%d\r\n", int(current_temp), int((current_temp-int(current_temp))*10)); 
-
+void DecreaseTemp() {
+    if (heating == ON) {
+        heating = OFF;
     }
 
-    static void IncreaseTemp() {
-
-        if (fan == ON) {
-            fan = OFF;
-        }
-
-        if (heating == OFF) {
-            heating = ON;
-        }
+    if (fan == OFF) {
+        fan = ON;
     }
+}
 
-    static void DecreaseTemp() {
-        if (heating == ON) {
+// Monitor temperature and stop fan or heating once the 
+// desired temperature is reached 
+void TempWatchdog (float desired_temp) {
+    if (current_temp > desired_temp + 2) {
+        DecreaseTemp();
+    }
+    else if (desired_temp - 2 >= current_temp <= desired_temp + 2) {
+        // Stop all HVAC activities
             heating = OFF;
-        }
-
-        if (fan == OFF) {
-            fan = ON;
-        }
+            fan = OFF;
     }
-
-    // Monitor temperature and stop fan or heating once the 
-    // desired temperature is reached 
-    static void TempWatchdog (float desired_temp) {
-        if (current_temp > desired_temp + 2) {
-            DecreaseTemp();
-        }
-        else if (desired_temp - 2 >= current_temp <= desired_temp + 2) {
-            // Stop all HVAC activities
-                heating = OFF;
-                fan = OFF;
-        }
-        else if (current_temp < desired_temp - 2) {
-            IncreaseTemp();
-        } else {
-            printf ("Error: Unknown temperature");
-        }
+    else if (current_temp < desired_temp - 2) {
+        IncreaseTemp();
+    } else {
+        printf ("Error: Unknown temperature");
+        play_signal(&Alarm);
+        alarm_flag = true;
     }
-};
+}
+#endif

@@ -20,6 +20,11 @@ inline I2C temp_sensor(I2C_SDA, I2C_SCL);
 inline BufferedSerial pc(USBTX, USBRX, 9600);
 inline DigitalOut fan(D2);
 inline DigitalOut heating(D4);
+inline static float current_temp = 0.0f;
+float getTemp();
+void DecreaseTemp();
+void IncreaseTemp();
+void TempWatchdog(float desired_tem);
 #else
 inline int fan = OFF;
 inline int heating = OFF;

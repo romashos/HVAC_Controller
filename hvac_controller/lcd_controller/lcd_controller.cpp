@@ -1,6 +1,7 @@
 /* lcd_controller is a UI Task that updates LCD and shift-register LED bar */
 
 #include "lcd_controller.hpp"
+#include "../temperature_controller/temperature_controller.hpp"
 
 #define COMMAND_MODE 0x00   //used to clear RS line to 0, for command transfer 
 #define DATA_MODE 0x04      //used to set RS line to 1, for data transfer 
@@ -65,18 +66,30 @@ void print_lcd(const char *string) {
     } 
 } 
 
-// This should access global variable float humidity, float temperature, bool fan_status
 void start_lcd() {
+    clr_lcd();
+    print_lcd("HVAC Controller Active");
+    print_lcd("Time: --:--:--");
+    print_lcd("Temperature: --.- C");
+    print_lcd("Fan: OFF");
+}
 
-    char buf[32];
+void update_lcd() {
+    char time_buf[20] = "--:--:--";
     time_t now = time(nullptr);
     struct tm *t = localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", t);
-    std::string time_message = std::string("Current time: ") + buf;
-    print_lcd("HVAC Controller is active"); 
-    print_lcd(time_message.c_str()); 
+    if (t != nullptr) {
+        strftime(time_buf, sizeof(time_buf), "%H:%M:%S", t);
+    }
 
-    print_lcd("Temperature: \n");  
-    print_lcd("Humidity: \n");  
-    print_lcd("Fan: \n");
+    char temp_buf[32];
+    std::snprintf(temp_buf, sizeof(temp_buf), "Temperature: %.1f C", getTemp());
+
+    std::string time_line = std::string("Time: ") + time_buf;
+    std::string temp_line(temp_buf);
+    std::string fan_line = std::string("Fan: ") + (fan == ON ? "ON " : "OFF");
+
+    print_lcd(time_line.c_str());
+    print_lcd(temp_line.c_str());
+    print_lcd(fan_line.c_str());
 }
