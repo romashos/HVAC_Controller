@@ -8,12 +8,13 @@ include(FetchContent)
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/heads/main.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 add_executable(button_controller_test_harness
-    ${CMAKE_CURRENT_SOURCE_DIR}/button_controller_test_harness.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/button_controller_test_harness.cpp"
 )
 
 target_compile_definitions(button_controller_test_harness PRIVATE
